@@ -1,0 +1,16 @@
+{
+  "name": "redis",
+  "version": "1.0.0",
+  "description": "",
+  "main": "demo.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "EvanXzj <2686465170@qq.com> (http://blog.chuidylan.com/)",
+  "license": "MIT",
+  "dependencies": {
+    "ioredis": "4.27.5",
+    "redlock": "4.2.0"
+  }
+}

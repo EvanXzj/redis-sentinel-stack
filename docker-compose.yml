@@ -1,0 +1,145 @@
+version: '3'
+
+services:
+  # 主节点的容器
+  redis-server-master:
+    image: redis
+    container_name: redis-server-master
+    restart: always
+    # 为了规避Docker中端口映射可能带来的问题
+    # 这里选择使用host网络
+    # network_mode: host
+    # 指定时区，保证容器内时间正确
+    environment:
+      TZ: "Asia/Shanghai"
+    volumes:
+      # 映射配置文件和数据目录
+      - ./redis-master.conf:/usr/local/etc/redis/redis.conf
+    sysctls:
+      # 必要的内核参数
+      net.core.somaxconn: '511'
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    ports: 
+      - 6379:6379
+    networks: 
+      extnetwork:
+        ipv4_address: 172.19.0.2
+  # 从节点1的容器
+  redis-server-slave-1:
+    image: redis
+    container_name: redis-server-slave-1
+    restart: always
+    # network_mode: host
+    depends_on:
+      - redis-server-master
+    environment:
+      TZ: "Asia/Shanghai"
+    volumes:
+      - ./redis-slave1.conf:/usr/local/etc/redis/redis.conf
+    sysctls:
+      net.core.somaxconn: '511'
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    ports: 
+      - 6380:6380
+    networks: 
+      extnetwork:
+        ipv4_address: 172.19.0.3
+  # 从节点1的容器
+  redis-server-slave-2:
+    image: redis
+    container_name: redis-server-slave-2
+    restart: always
+    # network_mode: host
+    depends_on:
+      - redis-server-master
+    environment:
+      TZ: "Asia/Shanghai"
+    volumes:
+      - ./redis-slave2.conf:/usr/local/etc/redis/redis.conf
+    sysctls:
+      net.core.somaxconn: '511'
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    ports: 
+      - 6381:6381
+    networks: 
+      extnetwork:
+        ipv4_address: 172.19.0.4
+  redis-sentinel-1:
+    image: redis
+    container_name: redis-sentinel-1
+    restart: always
+    # 为了规避Docker中端口映射可能带来的问题
+    # 这里选择使用host网络
+    # network_mode: host
+    volumes:
+      - ./redis-sentinel-1.conf:/usr/local/etc/redis/redis-sentinel.conf
+    # 指定时区，保证容器内时间正确
+    environment:
+      TZ: "Asia/Shanghai"
+    command: ["redis-sentinel", "/usr/local/etc/redis/redis-sentinel.conf"]
+    ports: 
+      - 26379:26379
+    depends_on: 
+      - redis-server-master
+    networks: 
+      extnetwork:
+        ipv4_address: 172.19.0.5
+  redis-sentinel-2:
+    image: redis
+    container_name: redis-sentinel-2
+    restart: always
+    volumes:
+      - ./redis-sentinel-2.conf:/usr/local/etc/redis/redis-sentinel.conf
+    environment:
+      TZ: "Asia/Shanghai"
+    command: ["redis-sentinel", "/usr/local/etc/redis/redis-sentinel.conf"]
+    ports: 
+      - 26380:26380
+    depends_on: 
+      - redis-server-master
+    networks: 
+      extnetwork:
+        ipv4_address: 172.19.0.6
+  redis-sentinel-3:
+    image: redis
+    container_name: redis-sentinel-3
+    restart: always
+    volumes:
+      - ./redis-sentinel-3.conf:/usr/local/etc/redis/redis-sentinel.conf
+    environment:
+      TZ: "Asia/Shanghai"
+    command: ["redis-sentinel", "/usr/local/etc/redis/redis-sentinel.conf"]
+    ports: 
+      - 26381:26381
+    depends_on: 
+      - redis-server-master
+    networks: 
+      extnetwork:
+        ipv4_address: 172.19.0.7
+  sentinel-demo:
+    build: .
+    depends_on: 
+      - redis-server-master
+      - redis-server-slave-1
+      - redis-server-slave-2
+      - redis-sentinel-1
+      - redis-sentinel-2
+      - redis-sentinel-3
+    links:
+      - redis-server-master
+      - redis-server-slave-1
+      - redis-server-slave-2
+      - redis-sentinel-1
+      - redis-sentinel-2
+      - redis-sentinel-3
+    networks: 
+      extnetwork:
+        ipv4_address: 172.19.0.8
+networks:
+  extnetwork:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.19.0.0/16
+          gateway: 172.19.0.1
